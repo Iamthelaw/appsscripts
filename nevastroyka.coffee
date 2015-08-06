@@ -3,10 +3,24 @@ hoho = (array) ->
   rand = Math.floor(Math.random() * array.length)
   array[rand]
 
+# Почистить HTML
+clean = (string) ->
+  string.replace(/<td>/g, '')
+    .replace(/<\/td>/g, '')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/<sup>2<\/sup>/g, '2')
+    .replace(/^<a\shref=".*?">/g, '')
+    .replace(/<\/a>$/g, '')
+    .replace(/<span class=".*?">/g, '')
+    .replace(/<\/span>/g, '')
+
+###
 # Основная функция
+###
+
 meta = (url) ->
   
-  # Переменные
+  # Узнаем текущий год и месяц
   time = new Date
   month = time.getMonth() + 1
   year = time.getFullYear()
@@ -20,62 +34,57 @@ meta = (url) ->
   h1 = /2">.*?<\/h1>/.exec(html) # H1
   metadon = html.match(/content=".*?"/g) # Мета
   
-  # Таблица с характеристиками
-  table = html.match(/<td>.*?<\/td>/g)
+  table = html.match(/<td>.*?<\/td>/g) # Таблица с характеристиками
   
   # Раскидываем значения по переменным
   for item, i in table
-    item = table[i]
-    if item == '<td>Комнат:</td>'
+    if item is '<td>Комнат:</td>'
       apt = table[i + 1]
-    else if item == '<td>Этаж:</td>'
+    else if item is '<td>Этаж:</td>'
       floor = table[i + 1]
-    else if item == '<td>Площадь общая:</td>'
+    else if item is '<td>Площадь общая:</td>'
       ploshad = table[i + 1]
-    else if item == '<td>Площадь жилая:</td>'
+    else if item is '<td>Площадь жилая:</td>'
       ploshad_zh = table[i + 1]
-    else if item == '<td>Район:</td>'
+    else if item is '<td>Район:</td>'
       raion = table[i + 1]
-    else if item == '<td>Тип дома:</td>'
+    else if item is '<td>Тип дома:</td>'
       dom = table[i + 1]
-    else if item == '<td>Адрес дома:</td>'
+    else if item is '<td>Адрес дома:</td>'
       address = table[i + 1]
-    else if item == '<td>Плановый срок сдачи:</td>'
+    else if item is '<td>Плановый срок сдачи:</td>'
       srok_plan = table[i + 1]
-    else if item == '<td>Фактический срок сдачи:</td>'
+    else if item is '<td>Фактический срок сдачи:</td>'
       srok_fuckt = table[i + 1]
-    else if item == '<td>Застройщик:</td>'
+    else if item is '<td>Застройщик:</td>'
       zastroyshik = table[i + 1]
-    else if item == '<td>Цена за кв метр:</td>'
+    else if item is '<td>Цена за кв метр:</td>'
       price_m = table[i + 1]
-    else if item == '<td>Стоимость квартиры:</td>'
+    else if item is '<td>Стоимость квартиры:</td>'
       price_total = table[i + 1]
-    else if item == '<td>Ближайшее метро:</td>'
+    else if item is '<td>Ближайшее метро:</td>'
       metro = table[i + 1]
 
   # Небольшая чистка
-  apt = apt.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  apt = clean(apt)
   h1 = h1[0].replace(/^2">/, '').replace(/<\/h1>/, '')
-  dom = dom.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  dom = clean(dom)
   keywords = metadon[3].replace(/content="/, '').replace(/"$/, '')
   description = metadon[4].replace(/content="/, '').replace(/"$/, '')
-  ploshad = ploshad.replace(/^<td>/, '').replace(/<\/td>$/, '')
-  price_m = price_m.replace(/^<td>/, '').replace(/<\/td>$/, '').replace(/&nbsp;/, '').replace(/&nbsp;/, ' ').replace(/<sup>2<\/sup>/, '2')
-  price_total = price_total.replace(/^<td>/, '').replace(/<\/td>$/, '').replace(/<span class=".*?">/, '').replace(/&nbsp;/g, ' ').replace(/<\/span>/, '.')
+  ploshad = clean(ploshad)
+  price_m = clean(price_m)
+  price_total = clean(price_total) + '.'
   price_int = price_total.replace(/\sруб./, '').replace(/\s/g, '')
   price_int = parseInt(price_int)
-  if ploshad_zh != undefined
-    ploshad_zh = ploshad_zh.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  ploshad_zh = clean(ploshad_zh) if ploshad_zh?
   metro_link = /\/\w*?\/\w*?\//.exec(metro)
-  if metro != undefined
-    metro = metro.replace(/<td><a href="\/.*?\/.*?\/">/, '').replace(/<\/a><\/td>/, '')
+  metro = clean(metro) if metro?
 
   ###
   # Данные для первого предложения
   ###
 
-  rain = raion
-  rain = /\/\w*?\/\w*?\//.exec(rain)
+  rain = /\/\w*?\/\w*?\//.exec(raion)
 
   # Вычленяем тип квартиры (1 ком, студия) из описания
   if /^\d/.test(description)
@@ -91,8 +100,7 @@ meta = (url) ->
   else
     zk = zk[0].replace(/title=".*?">/, '').replace(/</, '')
 
-  # Застройщик
-  zastroyshik = zastroyshik.replace(/^<td>/, '').replace(/<\/td>$/, '').replace(/^<a\shref=".*?">/, '').replace(/<\/a>$/, '')
+  zastroyshik = clean(zastroyshik) # Застройщик
   
   # Составляем первое предложение в описании
   full_desc = [['В ', zk, ' от строительной компании ', zastroyshik, ' продается ', type, '.'].join('') ]
@@ -101,17 +109,17 @@ meta = (url) ->
   # Адрес и Район
   ###
 
-  raion = raion.replace(/<td>/, '').replace(/<\/td>/, '').replace(/<.\shref=".*?">/, '').replace(/<\/a>/, '')
+  raion = clean(raion)
   
   # Борьба с в и во
-  if raion == 'Всеволожский'
+  if raion is 'Всеволожский'
     raion_v = ' во ' + raion.replace(/ий$/, 'ом')
   else
     raion_v = ' в ' + raion.replace(/ий$/, 'ом')
 
   # Если адрес не указан
-  if address != undefined
-    address = address.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  if address?
+    address = clean(address)
     full_desc.push ['Новостройка расположена по адресу: ', raion, ' район, ', address, '.'].join('')
   else
     full_desc.push ['Новостройка расположена', raion_v, ' районе.'].join('')
@@ -133,8 +141,8 @@ meta = (url) ->
     type_v = type.replace(/ая/, 'ые').replace(/а$/, 'ы')
 
   # Добавить текст про этажность если есть характеристика
-  if floor != undefined
-    floor = floor.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  if floor?
+    floor = clean(floor)
     full_desc.push ['Квартира расположена на ', floor, '-м этаже.'].join('')
   
   # Общая площадь всегда есть, добавляем текст в описание
@@ -177,51 +185,44 @@ meta = (url) ->
   ###
   
   # Определяем класс дома
-  if dom == 'Кирпичный'
-    dom_class = 'комфорт'
-  else if dom == 'Монолитный'
-    dom_class = 'эконом'
-  else
-    dom_class = 'эконом'
+  dom_class = switch
+    when dom is 'Кирпичный' then 'комфорт'
+    when dom is 'Монолитный' then 'эконом'
+    else 'эконом'
   
   # Добавляем предложение о классе дома
   full_desc.push ['\nДом строится по технологии ', dom.toLowerCase(), ' и относится к ', dom_class, ' классу жилья.'].join('')
   
   # Если есть фактический срок сдачи он становится основным
-  if srok_fuckt == undefined
-    srok = srok_plan.replace(/^<td>/, '').replace(/<\/td>$/, '')
+  if srok_fuckt is undefined
+    srok = clean(srok_plan)
   else
-    srok = srok_fuckt.replace(/^<td>/, '').replace(/<\/td>$/, '')
+    srok = clean(srok_fuckt)
 
   # Год сдачи в целое число
   srok_int = /\d{4}/.exec(srok)
   srok_int = parseInt(srok_int[0])
 
   # Определяем текущий квартал
-  if month <= 12
-    sdan = 4
-  else if month <= 9
-    sdan = 3
-  else if month >= 6
-    sdan = 2
-  else if month >= 3
-    sdan = 1
+  sdan = switch
+    when month <= 3 then 1
+    when month <= 6 then 2
+    when month <= 9 then 3
+    when month <= 12 then 4
+    else 'Error!'
 
   # Конвертируем квартал в характеристике в число
-  if /^I\s/.test(srok)
-    sdan2 = 1
-  else if /^II\s/.test(srok)
-    sdan2 = 2
-  else if /^III\s/.test(srok)
-    sdan2 = 3
-  else if /^IV\s/.test(srok)
-    sdan2 = 4
+  sdan2 = switch
+    when /^I\s/.test(srok) is true then 1
+    when /^II\s/.test(srok) is true then 2
+    when /^III\s/.test(srok) is true then 3
+    when /^IV\s/.test(srok) is true then 4
+    else 'Error!'
 
   # Определяем сдан ли дом в эксплуатацию и добавляем нужный текст
   if srok_int == year
     if sdan2 >= sdan
-      full_desc.push [
-        'Планируемая дата сдачи дома в эксплуатацию - ', srok, '.'].join('')
+      full_desc.push ['Планируемая дата сдачи дома в эксплуатацию - ', srok, '.'].join('')
     else
       full_desc.push 'Дом сдан в эксплуатацию.'
   else if srok_int <= year
@@ -239,24 +240,17 @@ meta = (url) ->
   full_desc.push '\nЕсли Вас заинтересовала данная квартира, Вы можете оставить запрос на приобретение, а также уточнить любую интересующую вас информацию. Для получения информации о наличие квартир и стоимости необходимо заполнить форму заявки, или позвонить по контактному телефону.\nКвартиру можно приобрести по программе материнского капитала, военной ипотеке, в рассрочку. Принимаются субсидии. Ипотечный кредит на первичном рынке можно получить в банках, которые аккредитовали данный объект, а также в других банках предоставляющих кредиты на покупку жилья на первичном рынке.'
   
   # Определяем ценовой диапазон
-  if price_int >= 4500000
-    link_price = ' до 5 млн руб.'
-  else if price_int >= 4000000
-    link_price = ' до 4,5 млн руб.'
-  else if price_int >= 3500000
-    link_price = ' до 4 млн руб.'
-  else if price_int >= 3000000
-    link_price = ' до 3,5 млн руб.'
-  else if price_int >= 2500000
-    link_price = ' до 3 млн руб.'
-  else if price_int >= 2000000
-    link_price = ' до 2,5 млн руб.'
-  else if price_int >= 1500000
-    link_price = ' до 2 млн руб.'
-  else if price_int >= 1000000
-    link_price = ' до 1,5 млн руб.'
-  else if price_int >= 500000
-    link_price = ' до 1 млн руб.'
+  link_price = switch
+    when price_int < 1100000 then ' до 1 млн руб.'
+    when price_int < 1600000 then ' до 1,5 млн руб.'
+    when price_int < 2100000 then ' до 2 млн руб.'
+    when price_int < 2600000 then ' до 2,5 млн руб.'
+    when price_int < 3100000 then ' до 3 млн руб.'
+    when price_int < 3600000 then ' до 3,5 млн руб.'
+    when price_int < 4100000 then ' до 4 млн руб.'
+    when price_int < 4600000 then ' до 4,5 млн руб.'
+    when price_int > 4500000 then ' до 5 млн руб.'
+    else 'Error!'
 
   # Составляем description, keywords, h1  
   description = [type, 'площадью', ploshad + ' м2', 'в', zk, raion, 'район. Цена за кв м.:', price_m, ',', price_total, ' - за квартиру. Подробное описание и планировка на портале Nevastroyka.'].join(' ')
@@ -265,8 +259,7 @@ meta = (url) ->
   # Ссылка для района
   rain = [type_v, raion_v, ' районе', link_price, ' от застройщика [', 'http://nevastroyka.ru', rain, ']'].join('')
   # Ссылка для метро (если метро указано)
-  if metro != undefined
-    metro_li = [type_v, ' около метро "', metro, '"', link_price, ' от застройщика [', 'http://nevastroyka.ru', metro_link, ']'].join('')
+  metro_li = [type_v, ' около метро "', metro, '"', link_price, ' от застройщика [', 'http://nevastroyka.ru', metro_link, ']'].join('') if metro?
   
   # Возвращаем все это дело в виде таблицы
   [[id[0], h1, keywords, description, rain, metro_li, full_desc.join(' ')]]
